@@ -58,39 +58,30 @@ fn main() {
       return
     }
   };
-  let mut written_bytes_total: usize = 0;
-  let zeroed_memory: Vec<u8> = vec![0;chunksize];
 
   if !user_confirmation(diskpath) {
     return
   }
 
+  let mut written_bytes_total: usize = 0;
+  let mut valid_write: bool = true;
+  let zeroed_memory: Vec<u8> = vec![0;chunksize];
+
   print!["\n"];
 
-  loop {
-    let valid_write: bool;
-
+  while valid_write {
     written_bytes_total += match disk.write(&zeroed_memory) {
-      Ok(written_bytes) => {
-        if written_bytes == chunksize {
-          valid_write = true;
-        } else {
+      Ok(written_bytes) => written_bytes,
+      Err(error) => {
+        if error.kind() != std::io::ErrorKind::Interrupted {
           valid_write = false;
         }
-        written_bytes
-      },
-      Err(_error) => {
-        valid_write = false;
         0
       }
     };
 
     disk.sync_data().unwrap();
     print_status(written_bytes_total);
-
-    if !valid_write {
-      break
-    }
   }
 
   print!["\n\n\n\n\n"]; // Print 5 newlines to get to the end
