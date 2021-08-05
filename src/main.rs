@@ -3,6 +3,8 @@ use std::fs::File;
 use std::io::{Write,stdin,stdout};
 use std::path::Path;
 
+const PRINT_LINES: u32 = 11;
+
 // arg1: Path to disk (/dev/sdc)
 // arg2: The unit [b,k,m,g,t]
 // arg3: MiB chunk size
@@ -32,25 +34,28 @@ fn main() {
     }
   };
 
-  if unit == "b" || unit == "B" {
-    // Leave the bytes as they are
-  } else if unit == "k" || unit == "K" {
-    chunksize *= 1024;
-  } else if unit == "m" || unit == "M" {
-    chunksize *= 1024 * 1024;
-  } else if unit == "g" || unit == "G" {
-    chunksize *= 1024 * 1024 * 1024;
-  } else if unit == "t" || unit == "T" {
-    chunksize *= 1024 * 1024 * 1024 * 1024;
-  } else {
-    eprintln!["Invalid unit {}",unit];
-    return
-  }
+  match unit {
+    "b" => {},
+    "B" => {},
+    "k" => chunksize *= 1000_usize,
+    "K" => chunksize *= 1024_usize,
+    "m" => chunksize *= 1000_usize.pow(2),
+    "M" => chunksize *= 1024_usize.pow(2),
+    "g" => chunksize *= 1000_usize.pow(3),
+    "G" => chunksize *= 1024_usize.pow(3),
+    "t" => chunksize *= 1000_usize.pow(4),
+    "T" => chunksize *= 1024_usize.pow(4),
+    _ => {
+      eprintln!["Invalid unit {}",unit];
+      return
+    }
+  };
 
   if !Path::new(diskpath).exists() {
     eprintln!["{} doesn't exist",diskpath];
     return
   }
+
   let mut disk: File = match File::create(diskpath) {
     Ok(file) => file,
     Err(error) => {
@@ -83,22 +88,41 @@ fn main() {
     print_status(written_bytes_total);
   }
 
-  print!["\n\n\n\n\n"]; // Print 5 newlines to get to the end
+  for _ in 0..PRINT_LINES {
+    print!["\n"];
+  }
 
 	print!["\n"];
 }
 
 fn print_status(bytes: usize) {
-	let kib: f64 = bytes as f64 / 1024f64;
-	let mib: f64 = bytes as f64 / 1048576f64; // 1024 * 1024 (1024^2)
-	let gib: f64 = bytes as f64 / 1073741824f64; // 1024 * 1024 * 1024 (1024^3)
-	let tib: f64 = bytes as f64 / 1099511627776f64; // 1024 * 1024 * 1024 * 1024 (1024^4)
-  println!["  B: {}",bytes];
+  let kib: f64 = bytes as f64 / 1024_f64;
+  let mib: f64 = bytes as f64 / 1024_f64.powf(2_f64);
+  let gib: f64 = bytes as f64 / 1024_f64.powf(3_f64);
+  let tib: f64 = bytes as f64 / 1024_f64.powf(4_f64);
+  let kb: f64 = bytes as f64 / 1000_f64;
+  let mb: f64 = bytes as f64 / 1000_f64.powf(2_f64);
+  let gb: f64 = bytes as f64 / 1000_f64.powf(3_f64);
+  let tb: f64 = bytes as f64 / 1000_f64.powf(4_f64);
+
+  // Clear the lines before the print
+  for _ in 0..PRINT_LINES {
+	  println!["\x1B[2K"];
+	}
+  print!["\r\x1B[{}A",PRINT_LINES]; // Go lines up
+
+  println!["B: {}",bytes];
+  println![];
   println!["KiB: {}",kib];
   println!["MiB: {}",mib];
   println!["GiB: {}",gib];
   println!["TiB: {}",tib];
-  print!["\r\x1b[5A"]; // Go five lines up
+  println![];
+  println!["KB: {}",kb];
+  println!["MB: {}",mb];
+  println!["GB: {}",gb];
+  println!["TB: {}",tb];
+  print!["\r\x1B[{}A",PRINT_LINES]; // Go lines up
 }
 
 fn user_confirmation(disk: &str) -> bool {
