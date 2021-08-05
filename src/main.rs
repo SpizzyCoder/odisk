@@ -64,17 +64,16 @@ fn main() {
   }
 
   let mut written_bytes_total: usize = 0;
-  let mut valid_write: bool = true;
   let zeroed_memory: Vec<u8> = vec![0;chunksize];
 
   print!["\n"];
 
-  while valid_write {
+  loop {
     written_bytes_total += match disk.write(&zeroed_memory) {
       Ok(written_bytes) => written_bytes,
       Err(error) => {
         if error.kind() != std::io::ErrorKind::Interrupted {
-          valid_write = false;
+          break
         }
         0
       }
