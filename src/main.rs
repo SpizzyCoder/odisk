@@ -92,7 +92,7 @@ fn main() {
     print!["\n"];
   }
 
-	print!["\n"];
+  print!["\n"];
 }
 
 fn print_status(bytes: usize) {
@@ -107,8 +107,8 @@ fn print_status(bytes: usize) {
 
   // Clear the lines before the print
   for _ in 0..PRINT_LINES {
-	  println!["\x1B[2K"];
-	}
+    println!["\x1B[2K"];
+  }
   print!["\r\x1B[{}A",PRINT_LINES]; // Go lines up
 
   println!["B: {}",bytes];
