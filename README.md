@@ -5,8 +5,9 @@ This program is so far only available and tested on GNU/Linux.
 
 # Using deletedisk
 The "syntax" looks like the following:  
-deletedisk *Disk* *Unit* *Chunksize*  
+deletedisk *Disk* *Mode* *Unit* *Chunksize*  
 *Disk* -> Path to the disk (example: /dev/sdc)  
+*Mode* -> Mode (z,r)  
 *Unit* -> Chunksize unit (b,B,k,K,m,M,g,G,t,T)  
 *Chunksize* -> Size of the chunk (> 0)
 
@@ -32,6 +33,6 @@ deletedisk /dev/sdc M 4 - This will allocate 4 MiB of memory.
 ```
 git clone https://gitlab.com/SpizzyCoder/deletedisk.git
 cd deletedisk
-cargo build --release
+cargo install --path .
 ```
-The executable is now located in ./target/release/deletedisk
+The executable is now located in your ./cargo/bin folder.
