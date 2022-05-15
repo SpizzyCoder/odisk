@@ -19,7 +19,7 @@ fn main() {
 
   if args.len() != 5 {
     println!["========================="];
-    println!["deletedisk v1.0"];
+    println!["deletedisk v{}",env!["CARGO_PKG_VERSION"]];
     println!["Syntax: deletedisk <disk> <mode> <Unit> <Chunksize>"];
     println!["Example: deletedisk /dev/sdc M 4"];
     println![];
