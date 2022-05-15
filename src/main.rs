@@ -5,28 +5,39 @@ use std::path::Path;
 
 const PRINT_LINES: u32 = 11;
 
+enum Mode {
+  Zero,
+  Random,
+}
+
 // arg1: Path to disk (/dev/sdc)
-// arg2: The unit [b,k,m,g,t]
-// arg3: MiB chunk size
+// arg2: Mode [z,r]
+// arg3: The unit [b,k,m,g,t]
+// arg4: MiB chunk size
 fn main() {
   let args: Vec<String> = env::args().collect();
 
-  if args.len() != 4 {
+  if args.len() != 5 {
     println!["========================="];
     println!["deletedisk v1.0"];
-    println!["Syntax: deletedisk <disk> <Unit> <Chunksize>"];
+    println!["Syntax: deletedisk <disk> <mode> <Unit> <Chunksize>"];
     println!["Example: deletedisk /dev/sdc M 4"];
     println![];
     println!["Note:"];
     println!["The <Chunksize> * <Unit> will be the allocated memory"];
     println!["The result must not be larger than the physical RAM you have available"];
+    println!["=========="];
+    println!["There are two modes 'z' and 'r'"];
+    println!["  z: Overwrite with zeros"];
+    println!["  r: Overwrite with random data"];
     println!["========================="];
     return
   }
 
   let diskpath: &str = &args[1];
-  let unit: &str = &args[2];
-  let mut chunksize: usize = match &args[3].parse() {
+  let mode: &str = &args[2];
+  let unit: &str = &args[3];
+  let mut chunksize: usize = match &args[4].parse() {
     Ok(chunksize) => *chunksize,
     Err(error) => {
       eprintln!["Couldn't parse string to unsigned int {} [Error: {}]",args[3],error];
@@ -51,8 +62,21 @@ fn main() {
     }
   };
 
+  let mode_enum: Mode = match mode {
+    "z" => Mode::Zero,
+    "r" => Mode::Random,
+    _ => {
+      eprintln!["Invalid mode {}",mode];
+      return
+    }
+  };
+
   if !Path::new(diskpath).exists() {
     eprintln!["{} doesn't exist",diskpath];
+    return
+  }
+
+  if !user_confirmation(diskpath) {
     return
   }
 
@@ -64,35 +88,7 @@ fn main() {
     }
   };
 
-  if !user_confirmation(diskpath) {
-    return
-  }
-
-  let mut written_bytes_total: usize = 0;
-  let zeroed_memory: Vec<u8> = vec![0;chunksize];
-
-  print!["\n"];
-
-  loop {
-    written_bytes_total += match disk.write(&zeroed_memory) {
-      Ok(written_bytes) => written_bytes,
-      Err(error) => {
-        if error.kind() != std::io::ErrorKind::Interrupted {
-          break
-        }
-        0
-      }
-    };
-
-    disk.sync_data().unwrap();
-    print_status(written_bytes_total);
-  }
-
-  for _ in 0..PRINT_LINES {
-    print!["\n"];
-  }
-
-	print!["\n"];
+  overwrite(chunksize,&mut disk,mode_enum);
 }
 
 fn print_status(bytes: usize) {
@@ -140,4 +136,43 @@ fn user_confirmation(disk: &str) -> bool {
   }
 
   return false
+}
+
+fn overwrite(chunksize: usize,disk: &mut File,mode: Mode) {
+  let mut written_bytes_total: usize = 0;
+  let mut memory: Vec<u8> = vec![0;chunksize];
+
+  println![];
+
+  loop {
+    // Generate random bytes if the user wants to write with random bytes
+    if matches![mode,Mode::Random] {
+      if let Err(error) = getrandom::getrandom(&mut memory) {
+        panic!["Failed to generate random bytes [Error: {}]",error];
+      }
+    }
+
+    let written_bytes = match disk.write(&memory) {
+      Ok(written_bytes) => written_bytes,
+      Err(error) => {
+        if error.kind() != std::io::ErrorKind::Interrupted {
+          panic!["Failed to write [Error: {}]",error];
+        }
+        continue
+      }
+    };
+
+    written_bytes_total += written_bytes;
+
+    disk.sync_data().unwrap();
+    print_status(written_bytes_total);
+
+    if written_bytes != chunksize {
+      break;
+    }
+  }
+
+  for _ in 0..(PRINT_LINES + 1) {
+    println![];
+  }
 }
