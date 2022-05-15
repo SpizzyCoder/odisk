@@ -19,17 +19,29 @@ fn main() {
 
   if args.len() != 5 {
     println!["========================="];
-    println!["deletedisk v{}",env!["CARGO_PKG_VERSION"]];
-    println!["Syntax: deletedisk <disk> <mode> <Unit> <Chunksize>"];
-    println!["Example: deletedisk /dev/sdc M 4"];
+    println!["{} v{}",env!["CARGO_PKG_NAME"],env!["CARGO_PKG_VERSION"]];
+    println!["Syntax: {} <disk> <mode> <unit> <chunksize>",env!["CARGO_PKG_NAME"]];
+    println!["Example: {} /dev/sdc r M 4",env!["CARGO_PKG_NAME"]];
     println![];
     println!["Note:"];
-    println!["The <Chunksize> * <Unit> will be the allocated memory"];
+    println!["The <chunksize> * <unit> will be the allocated memory"];
     println!["The result must not be larger than the physical RAM you have available"];
     println!["=========="];
-    println!["There are two modes 'z' and 'r'"];
-    println!["  z: Overwrite with zeros"];
-    println!["  r: Overwrite with random data"];
+    println!["<disk>: The disk to overwrite (/dev/sdb)"];
+    println!["<mode>: 'z' -> Overwrite with zeroes"];
+    println!["        'r' -> Overwrite with random data"];
+    println!["<unit>: The unit in which the disk should be overwritten"];
+    println!["        'b' -> Bytes"];
+    println!["        'B' -> Bytes"];
+    println!["        'k' -> Kilobytes"];
+    println!["        'K' -> Kibibytes"];
+    println!["        'm' -> Megabytes"];
+    println!["        'M' -> Mibibytes"];
+    println!["        'g' -> Gigabytes"];
+    println!["        'G' -> Gibibytes"];
+    println!["        't' -> Terabytes"];
+    println!["        'T' -> Tibibytes"];
+    println!["<chunksize: The chunksize in which the disk should be overwritten"];
     println!["========================="];
     return
   }
