@@ -31,7 +31,7 @@ deletedisk /dev/sdc M 4 - This will allocate 4 MiB of memory.
 
 # Building
 ```
-git clone https://gitlab.com/SpizzyCoder/deletedisk.git
+git clone https://github.com/SpizzyCoder/deletedisk.git
 cd deletedisk
 cargo install --path .
 ```
