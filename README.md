@@ -7,7 +7,7 @@ This program is so far only available and tested on GNU/Linux.
 The *Chunksize* * *Unit* will be the allocated memory.  
 The result must not be larger than the physical RAM you have available.  
 For example:  
-odisk /dev/sdc z M 4 - This will allocate 4 MiB of memory.  
+odisk -m zero -u mib -c 4 /dev/sdc - This will allocate 4 MiB of memory.  
 
 # Building
 ```
