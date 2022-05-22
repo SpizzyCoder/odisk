@@ -1,5 +1,5 @@
 [package]
-name = "deletedisk"
+name = "odisk"
 version = "0.1.1"
 authors = ["SpizzyCoder <spizzycoder@protonmail.com>"]
 edition = "2021"
