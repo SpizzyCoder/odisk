@@ -1,106 +1,91 @@
-use std::env;
 use std::fs::File;
 use std::io::{Write,stdin,stdout};
 use std::path::Path;
 
+use clap::Parser;
+use clap::ArgEnum;
+
 const PRINT_LINES: u32 = 11;
 
+#[derive(ArgEnum,Clone,Copy,Debug)]
 enum Mode {
   Zero,
   Random,
 }
 
-// arg1: Path to disk (/dev/sdc)
-// arg2: Mode [z,r]
-// arg3: The unit [b,k,m,g,t]
-// arg4: MiB chunk size
+#[derive(ArgEnum,Clone,Copy,Debug)]
+enum Unit {
+  B,
+  Kb,
+  Kib,
+  Mb,
+  Mib,
+  Gb,
+  Gib,
+  Tb,
+  Tib,
+}
+
+/// Simple program to overwrite disks
+#[derive(Parser,Debug)]
+#[clap(version,about)]
+pub struct Args {
+  /// Chunksize
+  #[clap(short,long,default_value_t = 1)]
+  chunksize: usize,
+
+  /// Unit
+  #[clap(short,long,arg_enum,default_value_t = Unit::B)]
+  unit: Unit,
+
+  /// Mode
+  #[clap(short,long,arg_enum,default_value_t = Mode::Zero)]
+  mode: Mode,
+
+  /// Path
+  #[clap()]
+  path: String,
+}
+
 fn main() {
-  let args: Vec<String> = env::args().collect();
+  let args: Args = Args::parse();
+  let diskpath: &Path = Path::new(&args.path);
 
-  if args.len() != 5 {
-    println!["========================="];
-    println!["{} v{}",env!["CARGO_PKG_NAME"],env!["CARGO_PKG_VERSION"]];
-    println!["Syntax: {} <disk> <mode> <unit> <chunksize>",env!["CARGO_PKG_NAME"]];
-    println!["Example: {} /dev/sdc r M 4",env!["CARGO_PKG_NAME"]];
-    println![];
-    println!["Note:"];
-    println!["The <chunksize> * <unit> will be the allocated memory"];
-    println!["The result must not be larger than the physical RAM you have available"];
-    println!["=========="];
-    println!["<disk>: The disk to overwrite (/dev/sdb)"];
-    println!["<mode>: 'z' -> Overwrite with zeroes"];
-    println!["        'r' -> Overwrite with random data"];
-    println!["<unit>: The unit in which the disk should be overwritten"];
-    println!["        'b' -> Bytes"];
-    println!["        'B' -> Bytes"];
-    println!["        'k' -> Kilobytes"];
-    println!["        'K' -> Kibibytes"];
-    println!["        'm' -> Megabytes"];
-    println!["        'M' -> Mibibytes"];
-    println!["        'g' -> Gigabytes"];
-    println!["        'G' -> Gibibytes"];
-    println!["        't' -> Terabytes"];
-    println!["        'T' -> Tibibytes"];
-    println!["<chunksize: The chunksize in which the disk should be overwritten"];
-    println!["========================="];
+  if !diskpath.exists() {
+    eprintln!["{} doesn't exist",diskpath.display()];
     return
   }
 
-  let diskpath: &str = &args[1];
-  let mode: &str = &args[2];
-  let unit: &str = &args[3];
-  let mut chunksize: usize = match &args[4].parse() {
-    Ok(chunksize) => *chunksize,
-    Err(error) => {
-      eprintln!["Couldn't parse string to unsigned int {} [Error: {}]",args[3],error];
-      return
-    }
-  };
-
-  match unit {
-    "b" => {},
-    "B" => {},
-    "k" => chunksize *= 1000_usize,
-    "K" => chunksize *= 1024_usize,
-    "m" => chunksize *= 1000_usize.pow(2),
-    "M" => chunksize *= 1024_usize.pow(2),
-    "g" => chunksize *= 1000_usize.pow(3),
-    "G" => chunksize *= 1024_usize.pow(3),
-    "t" => chunksize *= 1000_usize.pow(4),
-    "T" => chunksize *= 1024_usize.pow(4),
-    _ => {
-      eprintln!["Invalid unit {}",unit];
-      return
-    }
-  };
-
-  let mode_enum: Mode = match mode {
-    "z" => Mode::Zero,
-    "r" => Mode::Random,
-    _ => {
-      eprintln!["Invalid mode {}",mode];
-      return
-    }
-  };
-
-  if !Path::new(diskpath).exists() {
-    eprintln!["{} doesn't exist",diskpath];
+  if args.chunksize < 1 {
+    eprintln!["Chunksize can't be 0 or negative"];
     return
   }
 
-  if !user_confirmation(diskpath) {
+  if !user_confirmation(&args.path) {
     return
   }
+
+  let write_block: usize = match args.unit {
+    Unit::B   => args.chunksize * 1,
+    Unit::Kb  => args.chunksize * 1000_usize,
+    Unit::Kib => args.chunksize * 1024_usize,
+    Unit::Mb  => args.chunksize * 1000_usize.pow(2),
+    Unit::Mib => args.chunksize * 1024_usize.pow(2),
+    Unit::Gb  => args.chunksize * 1000_usize.pow(3),
+    Unit::Gib => args.chunksize * 1024_usize.pow(3),
+    Unit::Tb  => args.chunksize * 1000_usize.pow(4),
+    Unit::Tib => args.chunksize * 1024_usize.pow(4)
+  };
 
   let mut disk: File = match File::create(diskpath) {
     Ok(file) => file,
     Err(error) => {
-      eprintln!["Couldn't open {} [Error: {}]",diskpath,error];
+      eprintln!["Couldn't open {} [Error: {}]",diskpath.display(),error];
       return
     }
   };
 
-  overwrite(chunksize,&mut disk,mode_enum);
+  overwrite(write_block,&mut disk,args.mode);
 }
 
 fn print_status(bytes: usize) {
